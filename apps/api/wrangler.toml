@@ -4,3 +4,4 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ENVIRONMENT = "development"
+TURSO_DATABASE_URL = "file:../../packages/db/local.db"

@@ -75,3 +75,42 @@ export async function getArtistRelations(mbid: string): Promise<MBArtist[]> {
   const data = (await response.json()) as RelationsResponse;
   return (data.relations || []).filter((r) => r.artist).map((r) => r.artist as MBArtist);
 }
+
+export interface MBRelation {
+  type: string;
+  direction: "forward" | "backward";
+  artist: MBArtist;
+  attributes?: string[];
+}
+
+export async function getArtistRelationsWithTypes(mbid: string): Promise<MBRelation[]> {
+  await rateLimiter.wait();
+
+  const url = `${BASE_URL}/artist/${mbid}?fmt=json&inc=artist-rels`;
+  const response = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+  });
+
+  if (!response.ok) {
+    throw new Error(`MusicBrainz API error: ${response.status}`);
+  }
+
+  interface RelationsResponse {
+    relations?: Array<{
+      type: string;
+      direction: "forward" | "backward";
+      artist?: MBArtist;
+      attributes?: string[];
+    }>;
+  }
+
+  const data = (await response.json()) as RelationsResponse;
+  return (data.relations || [])
+    .filter((r) => r.artist)
+    .map((r) => ({
+      type: r.type,
+      direction: r.direction,
+      artist: r.artist as MBArtist,
+      attributes: r.attributes,
+    }));
+}

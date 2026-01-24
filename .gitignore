@@ -30,3 +30,9 @@ coverage
 
 # Drizzle
 drizzle/meta
+
+# Local database
+*.db
+
+# Playwright MCP
+.playwright-mcp/

@@ -1,6 +1,14 @@
-import { createDb } from "@music-explorer/db";
-import { artists, artistRelations } from "@music-explorer/db";
-import { collectArtist } from "../apps/api/src/collectors";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import * as schema from "../../../packages/db/src/schema";
+import { collectArtist } from "../src/collectors";
+
+const { artists, artistRelations } = schema;
+
+function createDb(url: string, authToken?: string) {
+  const client = createClient({ url, authToken });
+  return drizzle(client, { schema });
+}
 
 // Seed artists - well-known artists with rich relationship data
 const SEED_ARTISTS = [
@@ -36,7 +44,7 @@ async function main() {
   console.log("🎵 Starting data collection...\n");
 
   // Use local SQLite for development
-  const dbUrl = process.env.TURSO_DATABASE_URL || "file:./packages/db/local.db";
+  const dbUrl = process.env.TURSO_DATABASE_URL || "file:../../packages/db/local.db";
   const dbToken = process.env.TURSO_AUTH_TOKEN;
 
   const db = createDb(dbUrl, dbToken);

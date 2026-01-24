@@ -2,18 +2,23 @@ import type * as schema from "@music-explorer/db";
 import { artistRelations, artists } from "@music-explorer/db";
 import { eq } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { extractImageUrl, getArtistInfo, getSimilarArtists } from "./lastfm";
-import { type MBArtist, fetchArtist, searchArtists } from "./musicbrainz";
+import {
+  type MBArtist,
+  fetchArtist,
+  getArtistRelationsWithTypes,
+  searchArtists,
+} from "./musicbrainz";
+import { computeRelationshipStrength } from "./scoring";
+import { fetchArtistByMBID } from "./wikidata";
 
 type Database = LibSQLDatabase<typeof schema>;
 
 interface CollectorOptions {
   db: Database;
-  lastfmApiKey: string;
 }
 
 export async function collectArtist(mbidOrName: string, options: CollectorOptions) {
-  const { db, lastfmApiKey } = options;
+  const { db } = options;
 
   let mbArtist: MBArtist | null = null;
 
@@ -29,8 +34,10 @@ export async function collectArtist(mbidOrName: string, options: CollectorOption
     mbArtist = results[0];
   }
 
-  const lfmInfo = await getArtistInfo(mbArtist.name, lastfmApiKey);
-  const imageUrl = lfmInfo?.image ? extractImageUrl(lfmInfo.image) : null;
+  const wikidataInfo = await fetchArtistByMBID(mbArtist.id);
+  const imageUrl = wikidataInfo?.imageUrl || null;
+  const imageSource = wikidataInfo?.imageUrl ? ("wikidata" as const) : null;
+  const wikidataId = wikidataInfo?.wikidataId || null;
 
   const existingArtist = await db
     .select()
@@ -51,6 +58,8 @@ export async function collectArtist(mbidOrName: string, options: CollectorOption
         beginDate: mbArtist["life-span"]?.begin,
         endDate: mbArtist["life-span"]?.end,
         imageUrl,
+        imageSource,
+        wikidataId,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(artists.mbid, mbArtist.id))
@@ -68,20 +77,21 @@ export async function collectArtist(mbidOrName: string, options: CollectorOption
         beginDate: mbArtist["life-span"]?.begin,
         endDate: mbArtist["life-span"]?.end,
         imageUrl,
+        imageSource,
+        wikidataId,
       })
       .returning();
     savedArtist = inserted[0];
   }
 
-  const similarArtists = await getSimilarArtists(mbArtist.name, lastfmApiKey);
+  const mbRelations = await getArtistRelationsWithTypes(mbArtist.id);
+  const scoredRelations = computeRelationshipStrength(mbRelations);
 
-  for (const similar of similarArtists.slice(0, 10)) {
-    if (!similar.mbid) continue;
-
+  for (const relation of scoredRelations) {
     const existingRelated = await db
       .select()
       .from(artists)
-      .where(eq(artists.mbid, similar.mbid))
+      .where(eq(artists.mbid, relation.artist.id))
       .limit(1);
 
     if (existingRelated.length > 0) {
@@ -95,9 +105,9 @@ export async function collectArtist(mbidOrName: string, options: CollectorOption
         await db.insert(artistRelations).values({
           fromArtistId: savedArtist.id,
           toArtistId: existingRelated[0].id,
-          relationType: "similar",
-          strength: Number.parseFloat(similar.match),
-          source: "lastfm",
+          relationType: relation.type,
+          strength: relation.strength,
+          source: "musicbrainz",
         });
       }
     }
@@ -106,5 +116,6 @@ export async function collectArtist(mbidOrName: string, options: CollectorOption
   return savedArtist;
 }
 
-export { fetchArtist, searchArtists, getArtistRelations } from "./musicbrainz";
-export { getSimilarArtists, getArtistInfo } from "./lastfm";
+export { fetchArtist, getArtistRelationsWithTypes, searchArtists } from "./musicbrainz";
+export { fetchArtistByMBID } from "./wikidata";
+export { computeRelationshipStrength } from "./scoring";

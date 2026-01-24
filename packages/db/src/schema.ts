@@ -11,6 +11,7 @@ const timestamp = () => text("created_at").default(sql`(datetime('now'))`).notNu
 export const artists = sqliteTable("artists", {
   id: id(),
   mbid: text("mbid").unique(),
+  wikidataId: text("wikidata_id"),
   name: text("name").notNull(),
   sortName: text("sort_name"),
   country: text("country"),
@@ -18,6 +19,7 @@ export const artists = sqliteTable("artists", {
   beginDate: text("begin_date"),
   endDate: text("end_date"),
   imageUrl: text("image_url"),
+  imageSource: text("image_source").$type<"wikidata" | "lastfm" | null>(),
   createdAt: timestamp(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });
@@ -49,6 +51,7 @@ export const artistGenres = sqliteTable("artist_genres", {
     .references(() => genres.id)
     .notNull(),
   weight: real("weight").default(1.0),
+  source: text("source").default("wikidata"),
 });
 
 export const songs = sqliteTable("songs", {

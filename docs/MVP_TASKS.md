@@ -10,7 +10,7 @@ MVPは2つのフェーズで構成:
 
 ---
 
-## 進捗状況サマリー (2026-01-24 更新)
+## 進捗状況サマリー (2026-01-31 更新)
 
 ### 完了済み ✅
 - [x] Phase 1.1: プロジェクトセットアップ
@@ -19,11 +19,12 @@ MVPは2つのフェーズで構成:
 - [x] Phase 2.1: Hono APIエンドポイント
 - [x] Phase 2.2: Vite + Reactフロントエンド（**グラフ表示バグ修正済み**）
 - [x] Phase 2.3: Vitest設定
+- [x] **関係性データの充実** - 401アーティスト収集、65関係性構築
+- [x] **E2Eテスト追加** - Playwright 12テスト
 
 ### 次のセッションでの作業 🔧
-1. **関係性データの充実** - より多くのアーティスト収集
-2. **Turso本番DB設定** - Command Line Toolsアップデート後
-3. **E2Eテスト追加** - Playwright
+1. **Turso本番DB設定** - Command Line Toolsアップデート後
+2. **Cloudflare Pagesデプロイ**
 
 ---
 
@@ -84,7 +85,8 @@ MVPは2つのフェーズで構成:
 | Task 1.3.3: ~~Last.fm コレクター~~ → Wikidata コレクター | ✅ | SPARQL経由 |
 | Task 1.3.4: スコアリングモジュール | ✅ | 新規追加 |
 | Task 1.3.5: データ収集オーケストレーター | ✅ | Last.fm依存除去 |
-| Task 1.3.6: 初期データ収集スクリプト | ✅ | 22アーティスト収集済み |
+| Task 1.3.6: 初期データ収集スクリプト | ✅ | 40アーティスト収集済み |
+| Task 1.3.7: 関係性再構築スクリプト | ✅ | rebuild-relations.ts 新規作成 |
 
 ---
 
@@ -113,8 +115,9 @@ MVPは2つのフェーズで構成:
 | タスク | 状態 | 備考 |
 |--------|------|------|
 | Task 2.3.1: Vitest 設定 | ✅ | |
-| Task 2.3.2: API テスト | ✅ | 34テスト全通過 |
-| Task 2.3.3: E2E テスト | ⏳ | 未実装 |
+| Task 2.3.2: API テスト | ✅ | 42テスト全通過 |
+| Task 2.3.3: Web テスト | ✅ | 9テスト全通過 |
+| Task 2.3.4: E2E テスト | ✅ | Playwright 12テスト全通過 |
 
 ---
 
@@ -125,12 +128,13 @@ MVPは2つのフェーズで構成:
 **原因**: react-cytoscapejs v2.0.0とReact 19の互換性問題。COSEレイアウトのアニメーション中にコンポーネントがアンマウントされると、破棄済み要素へのアクセスでエラー発生
 **解決策**: react-cytoscapejsを削除し、cytoscapeを直接使用。レイアウトアニメーションを無効化し、requestAnimationFrameでDOMの準備を待機
 
-### 2. 関係性データが少ない (優先度: 高)
+### ~~2. 関係性データが少ない~~ ✅ 解決済み
 **症状**: グラフエッジが1つしかない
 **原因**: 収集済みアーティスト間でのみ関係性が作成される
-**対処**:
-- より多くのアーティストを収集
-- 収集済みアーティストの関係性を再構築するスクリプト作成
+**解決策**:
+- シードアーティストを22→42個に拡張
+- `rebuild-relations.ts` スクリプトを作成
+- 40アーティスト収集、9つの関係性構築完了
 
 ### 3. Turso CLI未インストール (優先度: 低)
 **症状**: Command Line Toolsが古くてbrew install失敗
@@ -151,14 +155,28 @@ cd apps/api && bun run dev:local
 # フロントエンド起動
 cd apps/web && bun run dev
 
-# 全テスト実行
+# 全ユニットテスト実行（51テスト）
 bun run test
+
+# E2Eテスト実行（12テスト）
+cd apps/web && bun run test:e2e
+
+# E2Eテスト（UIモード）
+cd apps/web && bun run test:e2e:ui
 
 # Lint
 bun run lint
 
-# データ収集
+# データ収集（基本）
 cd apps/api && bun run scripts/collect.ts
+
+# データ収集（大規模・進捗追跡付き）
+cd apps/api && bun run scripts/collect-large.ts
+cd apps/api && bun run scripts/collect-large.ts --follow  # 関係性追跡モード
+cd apps/api && bun run scripts/collect-large.ts --max=100 # 件数制限
+
+# 関係性再構築
+cd apps/api && bun run scripts/rebuild-relations.ts
 ```
 
 ### データベース
@@ -178,30 +196,30 @@ cd packages/db && bun run db:studio
 
 ## 次のセッションの作業計画
 
-### 優先度1: 関係性データ充実
-1. `apps/api/scripts/collect.ts` に追加アーティストを登録
-2. 再収集を実行して関係性を増やす
-3. 収集済みアーティストの関係性を再構築するスクリプト作成
+### ~~優先度1: 関係性データ充実~~ ✅ 完了
+1. ✅ `apps/api/scripts/collect.ts` に追加アーティストを登録（22→42個）
+2. ✅ 再収集を実行して関係性を増やす（40アーティスト収集）
+3. ✅ 収集済みアーティストの関係性を再構築するスクリプト作成（9関係性）
 
-### 優先度2: 本番環境準備
+### 優先度2: 本番環境準備 ⏳
 1. Xcode Command Line Tools更新
 2. Turso CLIインストール
 3. Turso DBを作成して環境変数設定
 4. Cloudflare Pagesへのデプロイ
 
-### 優先度3: E2Eテスト
-1. Playwrightセットアップ
-2. 検索・グラフ表示のE2Eテスト作成
+### ~~優先度3: E2Eテスト~~ ✅ 完了
+1. ✅ Playwrightセットアップ
+2. ✅ 検索・グラフ表示のE2Eテスト作成（12テスト）
 
 ---
 
-## ファイル構成（更新後）
+## ファイル構成（2026-01-31 更新）
 
 ```
 apps/api/
 ├── src/
 │   ├── index.ts              # Honoアプリ
-│   ├── dev.ts                # ローカル開発サーバー（新規）
+│   ├── dev.ts                # ローカル開発サーバー
 │   ├── routes/
 │   │   ├── search.ts
 │   │   ├── artists.ts
@@ -209,13 +227,29 @@ apps/api/
 │   └── collectors/
 │       ├── index.ts          # オーケストレーター（Wikidata統合）
 │       ├── musicbrainz.ts    # 強化版（getArtistRelationsWithTypes）
-│       ├── wikidata.ts       # 新規
-│       ├── scoring.ts        # 新規
+│       ├── wikidata.ts
+│       ├── scoring.ts
 │       ├── rate-limiter.ts
 │       └── lastfm.ts         # 保持（将来用）
 ├── scripts/
-│   └── collect.ts            # データ収集スクリプト
-└── package.json              # dev:local追加
+│   ├── collect.ts            # 基本データ収集スクリプト
+│   ├── collect-large.ts      # 大規模収集スクリプト（進捗追跡・再開機能）
+│   ├── rebuild-relations.ts  # 関係性再構築スクリプト
+│   ├── seeds/
+│   │   └── artists.ts        # ジャンル別シードリスト（402アーティスト）
+│   └── __tests__/
+│       └── rebuild-relations.test.ts  # 8テスト
+└── package.json
+
+apps/web/
+├── src/
+│   └── ...
+├── e2e/                      # E2Eテスト（新規）
+│   ├── search.spec.ts        # 検索テスト（7テスト）
+│   └── graph.spec.ts         # グラフテスト（5テスト）
+├── playwright.config.ts      # Playwright設定（新規）
+├── vitest.config.ts          # e2e除外設定追加
+└── package.json              # test:e2eスクリプト追加
 
 packages/db/
 ├── src/
@@ -228,19 +262,40 @@ packages/db/
 
 ---
 
-## 収集済みデータ
+## 収集済みデータ (2026-01-31 更新)
 
-**アーティスト数**: 22
-**関係性数**: 1（関連アーティストが少ないため）
+**アーティスト数**: 401
+**関係性数**: 65
+**画像あり**: 389 (97%)
 
-**収集済みアーティスト**:
-- Radiohead, The Beatles, Nirvana, David Bowie, Queen
-- Pink Floyd, Led Zeppelin, The Rolling Stones, Bob Dylan, Jimi Hendrix
-- The Clash, Talking Heads, Joy Division, New Order, The Smiths
-- Depeche Mode, Kraftwerk, Daft Punk, Aphex Twin
-- R.E.M., Pixies, Sonic Youth
+**ジャンル別収集数**:
+- Classic Rock: 25 (The Beatles, Queen, Led Zeppelin, Pink Floyd等)
+- Punk / Post-Punk: 45 (Ramones, Sex Pistols, Joy Division, The Cure等)
+- Alternative / Indie: 45 (R.E.M., Pixies, Radiohead, Arctic Monkeys等)
+- Grunge / 90s Rock: 20 (Nirvana, Pearl Jam, Soundgarden等)
+- Electronic / IDM: 45 (Kraftwerk, Aphex Twin, Daft Punk, Massive Attack等)
+- Metal: 30 (Black Sabbath, Metallica, Tool等)
+- Hip-Hop / R&B: 40 (Wu-Tang Clan, Kendrick Lamar, Prince等)
+- Jazz / World: 35 (Miles Davis, Fela Kuti等)
+- Japanese: 15 (YMO, Cornelius, Boris, toe等)
+
+**Top接続アーティスト**:
+1. The Beatles: 4 connections
+2. Joni Mitchell: 4 connections
+3. Thom Yorke: 3 connections
+4. Jack White: 3 connections
 
 **データ品質**:
 - MusicBrainz: メタデータ、関係タイプ ✅
 - Wikidata: 画像URL、Wikidata ID ✅
 - ジャンル: 未収集（Wikidata SPARQLクエリに追加可能）
+
+**収集スクリプト**:
+- `apps/api/scripts/collect.ts` - 基本収集スクリプト
+- `apps/api/scripts/collect-large.ts` - 大規模収集スクリプト（進捗追跡・再開機能付き）
+- `apps/api/scripts/rebuild-relations.ts` - 既存アーティスト間の関係性再構築
+- `apps/api/scripts/seeds/artists.ts` - ジャンル別シードリスト（402アーティスト）
+
+**E2Eテスト**:
+- `apps/web/e2e/search.spec.ts` - 検索機能テスト（7テスト）
+- `apps/web/e2e/graph.spec.ts` - グラフ表示テスト（5テスト）

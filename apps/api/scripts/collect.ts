@@ -38,6 +38,28 @@ const SEED_ARTISTS = [
   "R.E.M.",
   "Pixies",
   "Sonic Youth",
+  // Band members (high relationship potential)
+  "Thom Yorke",
+  "John Lennon",
+  "Paul McCartney",
+  "George Harrison",
+  "Dave Grohl",
+  "Foo Fighters",
+  // Collaborators
+  "Brian Eno",
+  "Iggy Pop",
+  "U2",
+  "Roxy Music",
+  // UK Post-punk / Alternative
+  "The Cure",
+  "Siouxsie and the Banshees",
+  "Echo & the Bunnymen",
+  "Wire",
+  // Electronic / Trip-hop
+  "Massive Attack",
+  "Boards of Canada",
+  "Autechre",
+  "Portishead",
 ];
 
 async function main() {
